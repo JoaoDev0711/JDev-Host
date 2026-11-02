@@ -248,7 +248,7 @@ let agentConnected = false;
 let apiSyncing = false;
 let syncTimer = null;
 
-function apiBase(){return ($("#apiBase")?.value || localStorage.getItem(API_BASE_KEY) || API_DEFAULT).trim().replace(/\\/+$/,"")}
+function apiBase(){return ($("#apiBase")?.value || localStorage.getItem(API_BASE_KEY) || API_DEFAULT).trim().replace(/\/+$/,"")}
 function apiToken(){return localStorage.getItem(API_TOKEN_KEY)||""}
 function apiMessage(message,error=false){
  const el=$("#apiMessage");if(!el)return;
