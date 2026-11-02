@@ -27,7 +27,9 @@ function bearer(request) {
 }
 async function admin(request, env) {
   const token = bearer(request);
-  return !!token && !!env.ADMIN_TOKEN && token === env.ADMIN_TOKEN;
+  if (!token) return false;
+  const tokenHash = await hash(token);
+  return !!(await env.DB.prepare("SELECT token_hash FROM auth_tokens WHERE token_hash = ? AND revoked_at IS NULL LIMIT 1").bind(tokenHash).first());
 }
 async function device(request, env) {
   const token = bearer(request);
@@ -79,6 +81,19 @@ export default {
     try {
       if (path === "/health" && request.method === "GET") {
         return json({ ok: true, service: "JDev Host API", time: now() });
+      }
+
+      if (path === "/api/claim" && request.method === "POST") {
+        const input = await body(request);
+        const setupHash = await hash(String(input.setupCode || ""));
+        const setup = await env.DB.prepare("SELECT id FROM setup_keys WHERE token_hash = ? AND used_at IS NULL LIMIT 1").bind(setupHash).first();
+        if (!setup) return fail("Código inicial inválido ou já utilizado.", 401);
+        const panelToken = randomToken();
+        await env.DB.batch([
+          env.DB.prepare("INSERT INTO auth_tokens (token_hash, created_at) VALUES (?, ?)").bind(await hash(panelToken), now()),
+          env.DB.prepare("UPDATE setup_keys SET used_at = ? WHERE id = ? AND used_at IS NULL").bind(now(), setup.id)
+        ]);
+        return json({ panelToken, message: "Painel autorizado. Guarde seu token; o código inicial não poderá ser reutilizado." }, 201);
       }
 
       if (path === "/api/agent/pair" && request.method === "POST") {
