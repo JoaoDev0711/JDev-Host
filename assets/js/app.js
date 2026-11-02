@@ -6,15 +6,15 @@ function note(msg){activity.unshift({msg,time:new Date().toLocaleString("pt-BR")
 function renderActivity(){$("#activity").innerHTML=activity.length?activity.map(a=>'<div class="event"><i></i><span>'+esc(a.msg)+'<br><span class="muted">'+esc(a.time)+'</span></span></div>').join(""):'<div class="muted">Nenhuma atividade ainda.</div>'}
 function gameCode(s){return s.game==="Minecraft"?"MC":s.game==="Terraria"?"TE":s.game==="Valheim"?"VH":"SRV"}
 function totalMods(){return servers.reduce((n,s)=>n+(s.mods||[]).length,0)}
-function card(s){return '<article class="server"><div class="servermain"><div class="gameicon">'+gameCode(s)+'</div><div><h3>'+esc(s.name)+'</h3><p>'+esc(s.game)+' · '+esc(s.version||"Versão não definida")+' · '+esc(s.loader)+'</p></div></div><div class="serveractions"><span class="pill">'+(s.mods||[]).length+' mods/plugins</span><button class="btn light" data-open="'+s.id+'">Gerenciar</button></div></article>'}
+function card(s){return '<article class="server"><div class="servermain"><div class="gameicon">'+gameCode(s)+'</div><div><h3>'+esc(s.name)+'</h3><p>'+esc(s.game)+' · '+esc(s.version||"Versão não definida")+' · '+esc(s.loader)+(s.loaderVersion?' '+esc(s.loaderVersion):'')+'</p></div></div><div class="serveractions"><span class="pill">'+(s.mods||[]).length+' mods/plugins</span><button class="btn light" data-open="'+s.id+'">Gerenciar</button></div></article>'}
 function empty(){return '<div class="empty"><div class="emptyicon">＋</div><h3>Nenhum servidor cadastrado</h3><p>Seu painel está vazio. Crie seu primeiro servidor para configurar versão, loader, memória, porta, mods e plugins.</p><button class="btn" data-create>＋ Criar primeiro servidor</button></div>'}
 function render(){const html=servers.length?servers.map(card).join(""):empty();$("#homeServers").innerHTML=html;$("#allServers").innerHTML=html;$("#statTotal").textContent=servers.length;$("#statMods").textContent=totalMods();renderActivity();$$("[data-open]").forEach(b=>b.onclick=()=>openDetail(b.dataset.open));$$("[data-create]").forEach(b=>b.onclick=()=>openServerModal());renderGlobalMods()}
 function showPage(p){const pages={home:"homePage",servers:"serversPage",detail:"detailPage",mods:"modsPage",infra:"infraPage",settings:"settingsPage"};Object.values(pages).forEach(id=>$("#"+id).classList.add("hidden"));if(p==="console"){ $("#homePage").classList.remove("hidden");$("#consoleLog").scrollIntoView({behavior:"smooth",block:"center"}) }else $("#"+pages[p]).classList.remove("hidden");$("#pageTitle").textContent=({home:"Visão geral",servers:"Servidores",detail:"Gerenciar servidor",mods:"Mods e plugins",infra:"Infraestrutura",settings:"Configurações"})[p];$$("[data-page]").forEach(b=>b.classList.toggle("active",b.dataset.page===p))}
 $$("[data-page]").forEach(b=>b.onclick=()=>showPage(b.dataset.page));$("#seeServers").onclick=()=>showPage("servers");$("#newServer").onclick=()=>openServerModal();$("#newServer2").onclick=()=>openServerModal();
-function openServerModal(id){editing=id||null;const s=id?servers.find(x=>x.id===id):null;$("#serverModalTitle").textContent=s?"Editar servidor":"Criar servidor";$("#sName").value=s?.name||"";$("#sGame").value=s?.game||"Minecraft";$("#sVersion").value=s?.version||"";$("#sLoader").value=s?.loader||"Vanilla";$("#sRam").value=s?.ram||2;$("#sPort").value=s?.port||25565;$("#sDescription").value=s?.description||"";$("#serverModal").classList.add("show")}
+function openServerModal(id){editing=id||null;const s=id?servers.find(x=>x.id===id):null;$("#serverModalTitle").textContent=s?"Editar servidor":"Criar servidor";$("#sName").value=s?.name||"";$("#sGame").value=s?.game||"Minecraft";$("#sVersion").value=s?.version||"";$("#sLoader").value=s?.loader||"Vanilla";if($("#sLoaderVersion"))$("#sLoaderVersion").value=s?.loaderVersion||"";$("#sRam").value=s?.ram||2;$("#sPort").value=s?.port||25565;$("#sDescription").value=s?.description||"";$("#serverModal").classList.add("show")}
 function closeModal(id){$("#"+id).classList.remove("show")}
 $("#cancelServer").onclick=()=>closeModal("serverModal");$("#serverModal").onclick=e=>{if(e.target.id==="serverModal")closeModal("serverModal")};
-$("#serverForm").onsubmit=e=>{e.preventDefault();const data={name:$("#sName").value.trim(),game:$("#sGame").value,version:$("#sVersion").value.trim(),loader:$("#sLoader").value,ram:Number($("#sRam").value),port:Number($("#sPort").value),description:$("#sDescription").value.trim()};if(editing){Object.assign(servers.find(x=>x.id===editing),data);note("Configurações de "+data.name+" atualizadas.")}else{servers.push({...data,id:crypto.randomUUID(),mods:[]});note("Servidor "+data.name+" cadastrado.")}save();render();closeModal("serverModal");if(editing){selected=editing;openDetail(selected)}else showPage("servers")};
+$("#serverForm").onsubmit=e=>{e.preventDefault();const data={name:$("#sName").value.trim(),game:$("#sGame").value,version:$("#sVersion").value.trim(),loader:$("#sLoader").value,loaderVersion:$("#sLoaderVersion")?.value||"",ram:Number($("#sRam").value),port:Number($("#sPort").value),description:$("#sDescription").value.trim()};if(editing){Object.assign(servers.find(x=>x.id===editing),data);note("Configurações de "+data.name+" atualizadas.")}else{servers.push({...data,id:crypto.randomUUID(),mods:[]});note("Servidor "+data.name+" cadastrado.")}save();render();closeModal("serverModal");if(editing){selected=editing;openDetail(selected)}else showPage("servers")};
 function openDetail(id){selected=id;const s=servers.find(x=>x.id===id);if(!s)return;$("#detailName").textContent=s.name;$("#detailIcon").textContent=gameCode(s);$("#detailSub").textContent=s.game+" · "+(s.version||"Sem versão")+" · "+s.loader;$("#tabConfig").innerHTML='<div class="grid2"><div><div class="muted">Jogo</div><b>'+esc(s.game)+'</b></div><div><div class="muted">Versão</div><b>'+esc(s.version||"Não definida")+'</b></div><div><div class="muted">Loader</div><b>'+esc(s.loader)+'</b></div><div><div class="muted">Memória</div><b>'+s.ram+' GB</b></div><div><div class="muted">Porta</div><b>'+s.port+'</b></div><div><div class="muted">Mods / plugins</div><b>'+(s.mods||[]).length+'</b></div></div><p class="muted" style="margin-top:18px">'+esc(s.description||"Sem descrição.")+'</p><div style="display:flex;gap:8px;margin-top:15px"><button class="btn" disabled title="Conecte o agente Linux para iniciar">Iniciar servidor</button><button class="btn light" disabled>Parar</button></div><p class="muted">Ações de execução bloqueadas até conectar o agente.</p>';renderModsTab(s);renderDetailConsole();showPage("detail");$$("[data-tab]").forEach(b=>b.classList.toggle("active",b.dataset.tab===activeTab));setTab(activeTab)}
 function setTab(t){activeTab=t;["config","mods","console"].forEach(x=>$("#tab"+x[0].toUpperCase()+x.slice(1)).classList.toggle("hidden",x!==t));$$("[data-tab]").forEach(b=>b.classList.toggle("active",b.dataset.tab===t))}
 $$("[data-tab]").forEach(b=>b.onclick=()=>setTab(b.dataset.tab));
@@ -132,11 +132,13 @@ async function loadMinecraftVersions(){
 async function getLoadersForVersion(version){
  if(!version)return [];
  if(mcCatalog.loadersByVersion.has(version))return mcCatalog.loadersByVersion.get(version);
- const body=await mcApi("/minecraft/modloader",{version});
+ const body=await mcApi("/minecraft/modloader",{version,includeAll:true});
  const list=Array.isArray(body.data)?body.data:[];
- const seen=new Map();
- list.forEach(item=>{const type=Number(item.type);if(type>0&&!seen.has(type))seen.set(type,{type,name:MC_LOADER_NAMES[type]||("Loader "+type),latest:!!item.latest,recommended:!!item.recommended})});
- const result=[...seen.values()].sort((a,b)=>a.type-b.type);
+ const result=list.filter(item=>Number(item.type)>0&&item.name).sort((a,b)=>{
+  if(!!a.recommended!==!!b.recommended)return a.recommended?-1:1;
+  if(!!a.latest!==!!b.latest)return a.latest?-1:1;
+  return String(b.dateModified||"").localeCompare(String(a.dateModified||""));
+ });
  mcCatalog.loadersByVersion.set(version,result);
  return result;
 }
@@ -149,11 +151,36 @@ async function updateServerLoaderOptions(version){
  const old=select.value;
  const fixed=[{value:"Vanilla",label:"Vanilla"},{value:"Paper",label:"Paper"},{value:"Purpur",label:"Purpur"},{value:"Spigot",label:"Spigot"},{value:"Outro",label:"Outro"}];
  let dynamic=[];
- try{dynamic=(await getLoadersForVersion(version)).map(x=>({value:x.name,label:x.name+(x.recommended?" · recomendado":"")}))}
- catch(e){console.warn("Falha ao consultar loaders para versão",version,e)}
+ try{
+  const all=await getLoadersForVersion(version);
+  const types=[...new Set(all.map(x=>Number(x.type)))];
+  dynamic=types.map(type=>({value:MC_LOADER_NAMES[type]||("Loader "+type),label:MC_LOADER_NAMES[type]||("Loader "+type)}));
+ }catch(e){console.warn("Falha ao consultar loaders para versão",version,e)}
  const options=[...fixed.slice(0,1),...dynamic,...fixed.slice(1)];
  select.innerHTML=options.map(o=>'<option value="'+esc(o.value)+'">'+esc(o.label)+'</option>').join("");
  select.value=preserveOption(select,old,options);
+ await updateServerLoaderVersions(version,select.value);
+}
+async function updateServerLoaderVersions(version,loader,preferred){
+ const select=$("#sLoaderVersion");if(!select)return;
+ const type=Object.keys(MC_LOADER_NAMES).find(k=>MC_LOADER_NAMES[k]===loader);
+ if(!version||!type){
+  select.innerHTML='<option value="">Não se aplica</option>';select.disabled=true;return;
+ }
+ select.disabled=false;select.innerHTML='<option value="">Carregando versões...</option>';
+ try{
+  const all=await getLoadersForVersion(version);
+  const builds=all.filter(x=>Number(x.type)===Number(type));
+  if(!builds.length){select.innerHTML='<option value="">Nenhuma versão disponível</option>';select.disabled=true;return}
+  select.innerHTML=builds.map(x=>{
+   const label=(x.forgeVersion||x.name)+(x.recommended?" · recomendado":x.latest?" · mais recente":"");
+   return '<option value="'+esc(x.name)+'">'+esc(label)+'</option>';
+  }).join("");
+  const target=preferred||select.dataset.preferred||"";
+  if(target&&builds.some(x=>x.name===target))select.value=target;
+  else select.selectedIndex=0;
+  select.dataset.preferred="";
+ }catch(e){select.innerHTML='<option value="">Falha ao carregar versões</option>';select.disabled=true;console.warn(e)}
 }
 async function updateCurseLoaderOptions(version,preferred){
  const select=$("#curseLoader");if(!select)return;
@@ -165,9 +192,10 @@ async function updateCurseLoaderOptions(version,preferred){
  if(preferred!==undefined)select.value=String(preferred);
 }
 $("#sVersion")?.addEventListener("change",()=>updateServerLoaderOptions($("#sVersion").value));
+$("#sLoader")?.addEventListener("change",()=>updateServerLoaderVersions($("#sVersion").value,$("#sLoader").value));
 $("#curseVersion")?.addEventListener("change",async()=>{await updateCurseLoaderOptions($("#curseVersion").value);});
 const originalOpenServerModal=openServerModal;
-openServerModal=function(id){originalOpenServerModal(id);const s=id?servers.find(x=>x.id===id):null;if(s?.game==="Minecraft"){if(s.version)$("#sVersion").value=s.version;updateServerLoaderOptions(s.version).then(()=>{if(s.loader)$("#sLoader").value=s.loader})}else updateServerLoaderOptions($("#sVersion").value)};
+openServerModal=function(id){originalOpenServerModal(id);const s=id?servers.find(x=>x.id===id):null;if(s?.game==="Minecraft"){if(s.version)$("#sVersion").value=s.version;updateServerLoaderOptions(s.version).then(()=>{if(s.loader)$("#sLoader").value=s.loader;return updateServerLoaderVersions(s.version,$("#sLoader").value,s.loaderVersion)})}else updateServerLoaderOptions($("#sVersion").value)};
 const originalCurseServerOptions=curseServerOptions;
 curseServerOptions=function(){
  const sel=$("#curseServer");if(!sel)return;
@@ -178,7 +206,7 @@ curseServerOptions=function(){
  const s=minecraft.find(x=>x.id===sel.value)||minecraft[0];
  if(s){
   $("#curseVersion").value=s.version||"";
-  updateCurseLoaderOptions(s.version,MC_LOADER_NAMES[s.loader] ? curseLoaderByServer[s.loader] : "0");
+  updateCurseLoaderOptions(s.version,curseLoaderByServer[s.loader]||"0");
  }
 };
 loadMinecraftVersions();
