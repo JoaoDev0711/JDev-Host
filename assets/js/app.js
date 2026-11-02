@@ -29,3 +29,79 @@ $("#consoleLog").insertAdjacentHTML("beforeend",'<div><span class="dim">[INFO]</
 $("#clearData").onclick=()=>{if(!confirm("Apagar todos os servidores e dados locais deste painel?"))return;servers=[];activity=[];save();render();showPage("home")};
 const DB="jdevhost-files";function openDB(){return new Promise((res,rej)=>{const r=indexedDB.open(DB,1);r.onupgradeneeded=()=>r.result.createObjectStore("mods");r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error)})}async function putFile(serverId,file){const db=await openDB();return new Promise((res,rej)=>{const tx=db.transaction("mods","readwrite");tx.objectStore("mods").put(file,serverId+":"+file.name);tx.oncomplete=()=>res();tx.onerror=()=>rej(tx.error)})}
 render();showPage("home");
+/* CurseForge — a chave da API fica exclusivamente no Cloudflare Worker. */
+const CURSE_API="https://jdev-host-curseforge.joaoferreiraneto0711.workers.dev";
+let curseIndex=0,curseTotal=0,curseLastQuery="";
+const curseLoaderByServer={"Forge":"1","Fabric":"4","Quilt":"5","NeoForge":"6"};
+function curseServerOptions(){
+ const sel=$("#curseServer"); if(!sel)return;
+ const current=sel.value;
+ const minecraft=servers.filter(s=>s.game==="Minecraft");
+ sel.innerHTML=minecraft.length?minecraft.map(s=>'<option value="'+esc(s.id)+'">'+esc(s.name)+'</option>').join(""):'<option value="">Nenhum servidor Minecraft cadastrado</option>';
+ if(minecraft.some(s=>s.id===current))sel.value=current;
+ const s=minecraft.find(x=>x.id===sel.value)||minecraft[0];
+ if(s){$("#curseVersion").value=s.version||"";$("#curseLoader").value=curseLoaderByServer[s.loader]||"0";}
+}
+function curseStatus(message,error=false){const el=$("#curseStatus");el.textContent=message;el.classList.toggle("curse-error",error)}
+function curseUrl(path,params={}){const u=new URL(CURSE_API+path);Object.entries(params).forEach(([k,v])=>{if(v!==""&&v!==null&&v!==undefined)u.searchParams.set(k,String(v))});return u.toString()}
+async function curseFetch(path,params={}){
+ const response=await fetch(curseUrl(path,params),{headers:{Accept:"application/json"}});
+ let body;try{body=await response.json()}catch{throw new Error("Resposta inválida do serviço CurseForge.")}
+ if(!response.ok)throw new Error(body.message||body.error||("Erro HTTP "+response.status));
+ return body;
+}
+function curseFormatDownloads(n){return Number(n||0).toLocaleString("pt-BR")}
+function curseRenderResults(items){
+ const root=$("#curseResults");
+ if(!items.length){root.innerHTML='<div class="empty"><h3>Nenhum mod encontrado</h3><p>Tente outro termo ou ajuste a versão e o modloader.</p></div>';return}
+ root.innerHTML=items.map(m=>'<article class="curse-card"><div class="curse-modtop">'+(m.logo?.thumbnailUrl?'<img src="'+esc(m.logo.thumbnailUrl)+'" alt="" loading="lazy">':'<div class="curse-placeholder">CF</div>')+'<div class="curse-modinfo"><h4>'+esc(m.name)+'</h4><p>'+esc(m.authors?.[0]?.name||"Autor não informado")+' · '+curseFormatDownloads(m.downloadCount)+' downloads</p></div></div><p class="curse-summary">'+esc((m.summary||"Sem descrição disponível.").slice(0,220))+'</p><div class="curse-actions"><a href="'+(m.links?.websiteUrl||("https://www.curseforge.com/minecraft/mc-mods/"+encodeURIComponent(m.slug||"")))+'" target="_blank" rel="noopener noreferrer">Página oficial</a><button class="btn light" data-curse-files="'+m.id+'">Ver arquivos</button></div><div class="curse-files hidden" id="curseFiles-'+m.id+'"></div></article>').join("");
+ root.querySelectorAll("[data-curse-files]").forEach(b=>b.onclick=()=>curseLoadFiles(b.dataset.curseFiles,b));
+}
+async function curseSearch(reset=true){
+ const server=servers.find(s=>s.id===$("#curseServer").value);
+ if(!server){curseStatus("Cadastre um servidor Minecraft para pesquisar mods.",true);return}
+ if(reset)curseIndex=0;
+ const params={gameId:432,classId:6,index:curseIndex,pageSize:12,sortField:2,sortOrder:"desc",searchFilter:$("#curseQuery").value.trim(),gameVersion:$("#curseVersion").value.trim(),modLoaderType:$("#curseLoader").value};
+ if(!params.gameVersion)delete params.modLoaderType;
+ curseLastQuery=JSON.stringify(params);
+ curseStatus("Pesquisando mods no CurseForge...");
+ $("#curseResults").innerHTML="";
+ try{
+  const body=await curseFetch("/mods/search",params);
+  const items=body.data||[];
+  curseTotal=body.pagination?.totalCount||0;
+  curseRenderResults(items);
+  const page=Math.floor(curseIndex/12)+1;
+  $("#cursePage").textContent="Página "+page+" · "+curseTotal.toLocaleString("pt-BR")+" resultados";
+  $("#cursePrev").disabled=curseIndex===0;
+  $("#curseNext").disabled=curseIndex+12>=curseTotal||items.length<12;
+  curseStatus(items.length+" mods encontrados. Escolha “Ver arquivos” para conferir a versão compatível.");
+ }catch(err){curseStatus("Não foi possível pesquisar: "+err.message+" Confira se o segredo CURSEFORGE_API_KEY foi salvo no Worker.",true)}
+}
+async function curseLoadFiles(modId,button){
+ const server=servers.find(s=>s.id===$("#curseServer").value);if(!server)return;
+ const target=$("#curseFiles-"+modId);target.classList.remove("hidden");target.innerHTML='<span class="muted">Carregando arquivos compatíveis...</span>';button.disabled=true;
+ const params={index:0,pageSize:20,gameVersion:$("#curseVersion").value.trim(),modLoaderType:$("#curseLoader").value};
+ if(!params.gameVersion)delete params.modLoaderType;
+ try{
+  const body=await curseFetch("/mods/"+encodeURIComponent(modId)+"/files",params);
+  const files=(body.data||[]).filter(f=>f.isAvailable!==false);
+  if(!files.length){target.innerHTML='<p class="muted">Nenhum arquivo disponível com esses filtros. Confira versão e modloader.</p>';return}
+  target.innerHTML=files.map(f=>'<div class="curse-file"><div><b>'+esc(f.displayName||f.fileName||("Arquivo "+f.id))+'</b><small>'+esc(f.fileName||"")+' · '+(f.fileDate?new Date(f.fileDate).toLocaleDateString("pt-BR"):"data não informada")+' · '+curseFormatDownloads(f.downloadCount)+' downloads</small></div><button class="btn" data-curse-add="'+f.id+'" data-mod="'+modId+'" data-filename="'+esc(f.fileName||f.displayName||"mod.jar")+'" data-display="'+esc(f.displayName||"")+'">Adicionar</button></div>').join("");
+  target.querySelectorAll("[data-curse-add]").forEach(add=>add.onclick=()=>curseAddFile(add,server));
+ }catch(err){target.innerHTML='<p class="curse-error">Erro ao carregar arquivos: '+esc(err.message)+'</p>'}
+ finally{button.disabled=false}
+}
+function curseAddFile(button,server){
+ const fileId=Number(button.dataset.curseAdd),modId=Number(button.dataset.mod),fileName=button.dataset.filename;
+ const s=servers.find(x=>x.id===server.id);if(!s)return;
+ s.mods=s.mods||[];
+ if(s.mods.some(m=>m.curseforgeFileId===fileId)){curseStatus("Esse arquivo já está na biblioteca de "+s.name+".",true);return}
+ s.mods.push({id:crypto.randomUUID(),name:button.dataset.display||fileName.replace(/\\.(jar|zip)$/i,""),version:"CurseForge #"+fileId,type:"Mod",loader:($("#curseLoader option:checked")?.textContent||"Qualquer")+" · Minecraft "+($("#curseVersion").value.trim()||"versão não filtrada"),fileName,curseforgeId:modId,curseforgeFileId:fileId,source:"CurseForge",url:"https://www.curseforge.com/minecraft/mc-mods"});
+ save();note(fileName+" adicionado à biblioteca de "+s.name+" via CurseForge.");render();curseStatus("Adicionado à biblioteca de "+s.name+". O download/instalação no host ainda depende do agente Linux.");
+}
+$("#curseSearchForm")?.addEventListener("submit",e=>{e.preventDefault();curseSearch(true)});
+$("#cursePrev")?.addEventListener("click",()=>{curseIndex=Math.max(0,curseIndex-12);curseSearch(false)});
+$("#curseNext")?.addEventListener("click",()=>{curseIndex+=12;curseSearch(false)});
+$("#curseServer")?.addEventListener("change",()=>{curseServerOptions()});
+const oldRender=render;render=function(){oldRender();curseServerOptions()};
