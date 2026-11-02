@@ -35,3 +35,13 @@
 /* Mensagens de conexão da API */
 .notice.error{border-color:#efc7c7;background:#fff8f8;color:#9b3d3d}
 #agentTokenOutput{font-size:11px;line-height:1.6;max-height:180px}
+
+/* Integração Pterodactyl */
+.ptero-status{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:15px;border:1px solid #e7ebf1;border-radius:10px;margin:14px 0;background:#fbfcfe}
+.ptero-status small,.ptero-status span{display:block;color:#8792a4;font-size:10px}
+.ptero-status strong{display:block;font-size:14px;margin:5px 0}
+.ptero-actions{display:flex;gap:8px;flex-wrap:wrap}
+.ptero-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px;margin:12px 0 16px}
+.ptero-feature{padding:13px;border:1px solid #e7ebf1;border-radius:9px;display:grid;gap:5px}
+.ptero-feature b{font-size:11px}.ptero-feature span{font-size:10px;line-height:1.5;color:#8792a4}
+@media(max-width:540px){.ptero-status{align-items:flex-start;flex-direction:column}.ptero-grid{grid-template-columns:1fr}.topright{flex-wrap:wrap}}
