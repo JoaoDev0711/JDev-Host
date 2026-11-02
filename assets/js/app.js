@@ -105,3 +105,80 @@ $("#cursePrev")?.addEventListener("click",()=>{curseIndex=Math.max(0,curseIndex-
 $("#curseNext")?.addEventListener("click",()=>{curseIndex+=12;curseSearch(false)});
 $("#curseServer")?.addEventListener("change",()=>{curseServerOptions()});
 const oldRender=render;render=function(){oldRender();curseServerOptions()};
+
+/* Catálogo oficial de versões e loaders do Minecraft via CurseForge. */
+const mcCatalog={versions:[],loadersByVersion:new Map(),loaded:false};
+const MC_LOADER_NAMES={1:"Forge",2:"Cauldron",3:"LiteLoader",4:"Fabric",5:"Quilt",6:"NeoForge"};
+async function mcApi(path,params={}){return curseFetch(path,params)}
+async function loadMinecraftVersions(){
+ const selects=[$("#sVersion"),$("#curseVersion")].filter(Boolean);
+ selects.forEach(s=>{s.innerHTML='<option value="">Carregando versões...</option>'});
+ try{
+  const body=await mcApi("/minecraft/version");
+  const raw=Array.isArray(body.data)?body.data:[];
+  mcCatalog.versions=[...new Set(raw.map(v=>v.versionString||v.name||v.gameVersion).filter(Boolean))];
+  mcCatalog.loaded=true;
+  if(!mcCatalog.versions.length)throw new Error("A API não retornou versões.");
+  const opts='<option value="">Selecione a versão</option>'+mcCatalog.versions.map(v=>'<option value="'+esc(v)+'">'+esc(v)+'</option>').join("");
+  selects.forEach(s=>s.innerHTML=opts);
+  if($("#sVersion"))$("#sVersion").value=servers.find(s=>s.game==="Minecraft"&&s.version)?.version||"";
+  if($("#curseVersion"))$("#curseVersion").value=servers.find(s=>s.game==="Minecraft"&&s.version)?.version||"";
+  await Promise.all([updateServerLoaderOptions($("#sVersion")?.value),updateCurseLoaderOptions($("#curseVersion")?.value)]);
+ }catch(err){
+  selects.forEach(s=>s.innerHTML='<option value="">Não foi possível carregar versões</option>');
+  curseStatus("Não foi possível carregar o catálogo de versões do Minecraft: "+err.message,true);
+ }
+}
+async function getLoadersForVersion(version){
+ if(!version)return [];
+ if(mcCatalog.loadersByVersion.has(version))return mcCatalog.loadersByVersion.get(version);
+ const body=await mcApi("/minecraft/modloader",{version});
+ const list=Array.isArray(body.data)?body.data:[];
+ const seen=new Map();
+ list.forEach(item=>{const type=Number(item.type);if(type>0&&!seen.has(type))seen.set(type,{type,name:MC_LOADER_NAMES[type]||("Loader "+type),latest:!!item.latest,recommended:!!item.recommended})});
+ const result=[...seen.values()].sort((a,b)=>a.type-b.type);
+ mcCatalog.loadersByVersion.set(version,result);
+ return result;
+}
+function preserveOption(select,value,options){
+ const exists=options.some(o=>o.value===String(value));
+ return exists?String(value):(options[0]?.value||"");
+}
+async function updateServerLoaderOptions(version){
+ const select=$("#sLoader");if(!select)return;
+ const old=select.value;
+ const fixed=[{value:"Vanilla",label:"Vanilla"},{value:"Paper",label:"Paper"},{value:"Purpur",label:"Purpur"},{value:"Spigot",label:"Spigot"},{value:"Outro",label:"Outro"}];
+ let dynamic=[];
+ try{dynamic=(await getLoadersForVersion(version)).map(x=>({value:x.name,label:x.name+(x.recommended?" · recomendado":"")}))}
+ catch(e){console.warn("Falha ao consultar loaders para versão",version,e)}
+ const options=[...fixed.slice(0,1),...dynamic,...fixed.slice(1)];
+ select.innerHTML=options.map(o=>'<option value="'+esc(o.value)+'">'+esc(o.label)+'</option>').join("");
+ select.value=preserveOption(select,old,options);
+}
+async function updateCurseLoaderOptions(version,preferred){
+ const select=$("#curseLoader");if(!select)return;
+ select.innerHTML='<option value="0">Carregando loaders...</option>';
+ let loaders=[];
+ try{loaders=await getLoadersForVersion(version)}catch(e){console.warn("Falha ao consultar modloaders",e)}
+ const options=[{value:"0",label:"Qualquer loader"},...loaders.map(l=>({value:String(l.type),label:l.name+(l.recommended?" · recomendado":"")}))];
+ select.innerHTML=options.map(o=>'<option value="'+o.value+'">'+esc(o.label)+'</option>').join("");
+ if(preferred!==undefined)select.value=String(preferred);
+}
+$("#sVersion")?.addEventListener("change",()=>updateServerLoaderOptions($("#sVersion").value));
+$("#curseVersion")?.addEventListener("change",async()=>{await updateCurseLoaderOptions($("#curseVersion").value);});
+const originalOpenServerModal=openServerModal;
+openServerModal=function(id){originalOpenServerModal(id);const s=id?servers.find(x=>x.id===id):null;if(s?.game==="Minecraft"){if(s.version)$("#sVersion").value=s.version;updateServerLoaderOptions(s.version).then(()=>{if(s.loader)$("#sLoader").value=s.loader})}else updateServerLoaderOptions($("#sVersion").value)};
+const originalCurseServerOptions=curseServerOptions;
+curseServerOptions=function(){
+ const sel=$("#curseServer");if(!sel)return;
+ const current=sel.value;
+ const minecraft=servers.filter(s=>s.game==="Minecraft");
+ sel.innerHTML=minecraft.length?minecraft.map(s=>'<option value="'+esc(s.id)+'">'+esc(s.name)+'</option>').join(""):'<option value="">Nenhum servidor Minecraft cadastrado</option>';
+ if(minecraft.some(s=>s.id===current))sel.value=current;
+ const s=minecraft.find(x=>x.id===sel.value)||minecraft[0];
+ if(s){
+  $("#curseVersion").value=s.version||"";
+  updateCurseLoaderOptions(s.version,MC_LOADER_NAMES[s.loader] ? curseLoaderByServer[s.loader] : "0");
+ }
+};
+loadMinecraftVersions();
