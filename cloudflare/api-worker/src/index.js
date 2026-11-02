@@ -115,7 +115,7 @@ export default {
 
         if (path === "/api/agent/poll" && request.method === "POST") {
           await env.DB.prepare("UPDATE devices SET last_seen = ? WHERE id = ?").bind(now(), currentDevice.id).run();
-          const task = await env.DB.prepare("SELECT id, command, server_id, payload_json FROM tasks WHERE status = 'pending' ORDER BY created_at ASC LIMIT 1").first();
+          const task = await env.DB.prepare("SELECT id, command, server_id, payload_json FROM tasks WHERE status = 'pending' ORDER BY rowid ASC LIMIT 1").first();
           if (!task) return json({ task: null, pollAfterMs: 4000 });
           await env.DB.prepare("UPDATE tasks SET status = 'claimed', claimed_by = ?, claimed_at = ? WHERE id = ? AND status = 'pending'")
             .bind(currentDevice.id, now(), task.id).run();
@@ -139,8 +139,8 @@ export default {
             }
           }
           if (input.taskId) {
-            await env.DB.prepare("UPDATE tasks SET status = 'done', finished_at = ?, result = ? WHERE id = ? AND claimed_by = ?")
-              .bind(now(), String(input.message || status || "Concluído").slice(0, 1000), String(input.taskId), currentDevice.id).run();
+            await env.DB.prepare("UPDATE tasks SET status = ?, finished_at = ?, result = ? WHERE id = ? AND claimed_by = ?")
+              .bind(status === "error" ? "failed" : "done", now(), String(input.message || status || "Concluído").slice(0, 1000), String(input.taskId), currentDevice.id).run();
           }
           if (input.message) await log(env, serverId, input.level || "info", input.message);
           await env.DB.prepare("UPDATE devices SET last_seen = ? WHERE id = ?").bind(now(), currentDevice.id).run();
@@ -185,9 +185,13 @@ export default {
         if (!server) return fail("Servidor não encontrado.", 404);
 
         if (action === "start" && request.method === "POST") {
+          if (server.status === "running" || server.status === "starting") {
+            return json({ ok: true, status: server.status, alreadyActive: true });
+          }
           const runtime = await env.DB.prepare("SELECT active_server_id FROM runtime_state WHERE id = 1").first();
-          const activeId = runtime?.active_server_id;
-          if (activeId && activeId !== serverId) {
+          const otherActive = await env.DB.prepare("SELECT id, status FROM servers WHERE id != ? AND status IN ('starting','running','stopping') ORDER BY updated_at DESC LIMIT 1").bind(serverId).first();
+          const activeId = runtime?.active_server_id || otherActive?.id;
+          if (activeId && activeId !== serverId && otherActive?.status !== "stopping") {
             await enqueue(env, "stop", activeId, { reason: "Troca de servidor: apenas uma instância pode ficar ativa." });
             await env.DB.prepare("UPDATE servers SET status = 'stopping', updated_at = ? WHERE id = ?").bind(now(), activeId).run();
           }
