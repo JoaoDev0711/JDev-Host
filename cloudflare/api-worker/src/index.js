@@ -170,7 +170,7 @@ export default {
       if (path === "/api/servers" && request.method === "POST") {
         const input = await body(request);
         const { name, config } = serverData(input);
-        const serverId = id();
+        const serverId = /^[a-f0-9-]{36}$/i.test(String(input.id || "")) ? String(input.id) : id();
         await env.DB.prepare("INSERT INTO servers (id, name, config_json, status, created_at, updated_at) VALUES (?, ?, ?, 'stopped', ?, ?)")
           .bind(serverId, name, JSON.stringify(config), now(), now()).run();
         await log(env, serverId, "info", "Servidor cadastrado no painel.");
