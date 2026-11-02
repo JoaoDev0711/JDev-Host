@@ -114,7 +114,7 @@ async function loadMinecraftVersions(){
  const selects=[$("#sVersion"),$("#curseVersion")].filter(Boolean);
  selects.forEach(s=>{s.innerHTML='<option value="">Carregando versões...</option>'});
  try{
-  const body=await mcApi("/minecraft/version");
+  const body=await mcApi("/minecraft/version",{sortDescending:true});
   const raw=Array.isArray(body.data)?body.data:[];
   mcCatalog.versions=[...new Set(raw.map(v=>v.versionString||v.name||v.gameVersion).filter(Boolean))];
   mcCatalog.loaded=true;
