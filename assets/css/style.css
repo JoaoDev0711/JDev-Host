@@ -19,3 +19,15 @@
 
 /* Selects do catálogo dinâmico do Minecraft */
 .cursefilters select,.field select{min-height:35px}
+
+/* Diagnóstico preliminar de compatibilidade */
+.compat-box{border:1px solid #e7ebf1;border-radius:10px;padding:13px;margin:12px 0 15px;background:#fbfcfe}
+.compat-head{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;margin-bottom:8px}
+.compat-head h3{font-size:12px;margin:0 0 4px}
+.compat-head p{font-size:10px;color:#7f8b9d;margin:0;line-height:1.5}
+.compat-row{display:flex;align-items:flex-start;gap:9px;padding:9px 0;border-top:1px solid #edf0f4}
+.compat-row b{display:block;font-size:10px}
+.compat-row small{display:block;font-size:9px;color:#8792a3;line-height:1.5;margin-top:3px}
+.compat-dot{width:8px;height:8px;border-radius:50%;margin-top:3px;flex-shrink:0;background:#aab4c2}
+.compat-dot.check{background:#398b67}.compat-dot.review{background:#c58b37}.compat-dot.unknown{background:#9aa3b1}
+.compat-foot{font-size:9px;line-height:1.5;color:#929cad;margin:10px 0 0}
