@@ -52,8 +52,15 @@ O agente não deve expor o socket do Docker, aceitar shell arbitrário nem execu
 
 ## Estrutura
 
-```
+```text
 .
 ├── index.html
+├── assets/
+│   ├── css/
+│   │   └── style.css
+│   └── js/
+│       └── app.js
 └── README.md
 ```
+
+O HTML contém a estrutura da interface, o CSS concentra a apresentação visual e o JavaScript controla navegação, cadastros e biblioteca local de mods/plugins.
