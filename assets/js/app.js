@@ -4,23 +4,23 @@ function load(k,f){try{return JSON.parse(localStorage.getItem(k))??f}catch{retur
 function esc(x){return String(x??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
 function note(msg){activity.unshift({msg,time:new Date().toLocaleString("pt-BR")});activity=activity.slice(0,12);save();renderActivity()}
 function renderActivity(){$("#activity").innerHTML=activity.length?activity.map(a=>'<div class="event"><i></i><span>'+esc(a.msg)+'<br><span class="muted">'+esc(a.time)+'</span></span></div>').join(""):'<div class="muted">Nenhuma atividade ainda.</div>'}
-function gameCode(s){return s.game==="Minecraft"?"MC":s.game==="Terraria"?"TE":s.game==="Valheim"?"VH":"SRV"}
+function gameCode(s){return s.game==="MinecraftJava"?"JAVA":s.game==="MinecraftBedrock"?"BED":s.game==="BeamNG"?"BMG":s.game==="ETS2"?"ETS":"SRV"}
 function totalMods(){return servers.reduce((n,s)=>n+(s.mods||[]).length,0)}
 function card(s){return '<article class="server"><div class="servermain"><div class="gameicon">'+gameCode(s)+'</div><div><h3>'+esc(s.name)+'</h3><p>'+esc(s.game)+' · '+esc(s.version||"Versão não definida")+' · '+esc(s.loader)+(s.loaderVersion?' '+esc(s.loaderVersion):'')+'</p></div></div><div class="serveractions"><span class="pill">'+(s.mods||[]).length+' mods/plugins</span><button class="btn light" data-open="'+s.id+'">Gerenciar</button></div></article>'}
 function empty(){return '<div class="empty"><div class="emptyicon">＋</div><h3>Nenhum servidor cadastrado</h3><p>Seu painel está vazio. Crie seu primeiro servidor para configurar versão, loader, memória, porta, mods e plugins.</p><button class="btn" data-create>＋ Criar primeiro servidor</button></div>'}
 function render(){const html=servers.length?servers.map(card).join(""):empty();$("#homeServers").innerHTML=html;$("#allServers").innerHTML=html;$("#statTotal").textContent=servers.length;$("#statMods").textContent=totalMods();renderActivity();$$("[data-open]").forEach(b=>b.onclick=()=>openDetail(b.dataset.open));$$("[data-create]").forEach(b=>b.onclick=()=>openServerModal());renderGlobalMods()}
 function showPage(p){const pages={home:"homePage",servers:"serversPage",detail:"detailPage",mods:"modsPage",infra:"infraPage",settings:"settingsPage"};Object.values(pages).forEach(id=>$("#"+id).classList.add("hidden"));if(p==="console"){ $("#homePage").classList.remove("hidden");$("#consoleLog").scrollIntoView({behavior:"smooth",block:"center"}) }else $("#"+pages[p]).classList.remove("hidden");$("#pageTitle").textContent=({home:"Visão geral",servers:"Servidores",detail:"Gerenciar servidor",mods:"Mods e plugins",infra:"Infraestrutura",settings:"Configurações"})[p];$$("[data-page]").forEach(b=>b.classList.toggle("active",b.dataset.page===p))}
 $$("[data-page]").forEach(b=>b.onclick=()=>showPage(b.dataset.page));$("#seeServers").onclick=()=>showPage("servers");$("#newServer").onclick=()=>openServerModal();$("#newServer2").onclick=()=>openServerModal();
-function openServerModal(id){editing=id||null;const s=id?servers.find(x=>x.id===id):null;$("#serverModalTitle").textContent=s?"Editar servidor":"Criar servidor";$("#sName").value=s?.name||"";$("#sGame").value=s?.game||"Minecraft";$("#sVersion").value=s?.version||"";$("#sLoader").value=s?.loader||"Vanilla";if($("#sLoaderVersion"))$("#sLoaderVersion").value=s?.loaderVersion||"";$("#sRam").value=s?.ram||2;$("#sPort").value=s?.port||25565;$("#sDescription").value=s?.description||"";$("#serverModal").classList.add("show")}
+function openServerModal(id){editing=id||null;const s=id?servers.find(x=>x.id===id):null;$("#serverModalTitle").textContent=s?"Editar servidor":"Criar servidor";$("#sName").value=s?.name||"";$("#sGame").value=s?.game||"MinecraftJava";$("#sVersion").value=s?.version||"";$("#sLoader").value=s?.loader||"Vanilla";if($("#sLoaderVersion"))$("#sLoaderVersion").value=s?.loaderVersion||"";$("#sRam").value=s?.ram||2;$("#sPort").value=s?.port||25565;$("#sDescription").value=s?.description||"";$("#serverModal").classList.add("show")}
 function closeModal(id){$("#"+id).classList.remove("show")}
 $("#cancelServer").onclick=()=>closeModal("serverModal");$("#serverModal").onclick=e=>{if(e.target.id==="serverModal")closeModal("serverModal")};
 $("#serverForm").onsubmit=e=>{e.preventDefault();const data={name:$("#sName").value.trim(),game:$("#sGame").value,version:$("#sVersion").value.trim(),loader:$("#sLoader").value,loaderVersion:$("#sLoaderVersion")?.value||"",ram:Number($("#sRam").value),port:Number($("#sPort").value),description:$("#sDescription").value.trim()};if(editing){Object.assign(servers.find(x=>x.id===editing),data);note("Configurações de "+data.name+" atualizadas.")}else{servers.push({...data,id:crypto.randomUUID(),mods:[]});note("Servidor "+data.name+" cadastrado.")}save();render();closeModal("serverModal");if(editing){selected=editing;openDetail(selected)}else showPage("servers")};
-function openDetail(id){selected=id;const s=servers.find(x=>x.id===id);if(!s)return;$("#detailName").textContent=s.name;$("#detailIcon").textContent=gameCode(s);$("#detailSub").textContent=s.game+" · "+(s.version||"Sem versão")+" · "+s.loader;$("#tabConfig").innerHTML='<div class="grid2"><div><div class="muted">Jogo</div><b>'+esc(s.game)+'</b></div><div><div class="muted">Versão</div><b>'+esc(s.version||"Não definida")+'</b></div><div><div class="muted">Loader</div><b>'+esc(s.loader)+'</b></div><div><div class="muted">Memória</div><b>'+s.ram+' GB</b></div><div><div class="muted">Porta</div><b>'+s.port+'</b></div><div><div class="muted">Mods / plugins</div><b>'+(s.mods||[]).length+'</b></div></div><p class="muted" style="margin-top:18px">'+esc(s.description||"Sem descrição.")+'</p><div style="display:flex;gap:8px;margin-top:15px"><button class="btn" disabled title="Conecte o agente Linux para iniciar">Iniciar servidor</button><button class="btn light" disabled>Parar</button></div><p class="muted">Ações de execução bloqueadas até conectar o agente.</p>';renderModsTab(s);renderDetailConsole();showPage("detail");$$("[data-tab]").forEach(b=>b.classList.toggle("active",b.dataset.tab===activeTab));setTab(activeTab)}
+function openDetail(id){selected=id;const s=servers.find(x=>x.id===id);if(!s)return;$("#detailName").textContent=s.name;$("#detailIcon").textContent=gameCode(s);$("#detailSub").textContent=s.game+" · "+(s.version||"Sem versão")+" · "+s.loader;$("#tabConfig").innerHTML='<div class="grid2"><div><div class="muted">Jogo</div><b>'+esc(s.game)+'</b></div><div><div class="muted">Versão</div><b>'+esc(s.version||"Não definida")+'</b></div><div><div class="muted">Loader</div><b>'+esc(s.loader)+'</b></div><div><div class="muted">Memória</div><b>'+s.ram+' GB</b></div><div><div class="muted">Porta</div><b>'+s.port+'</b></div><div><div class="muted">Mods / plugins</div><b>'+(s.mods||[]).length+'</b></div></div><p class="muted" style="margin-top:18px">'+esc(s.description||"Sem descrição.")+'</p><div style="display:flex;gap:8px;margin-top:15px"><button class="btn" id="startServerBtn">Iniciar servidor</button><button class="btn light" id="stopServerBtn">Parar</button></div><p class="muted" id="runtimeHint">Aguardando conexão com a API e o agente Linux.</p>';renderModsTab(s);renderDetailConsole();showPage("detail");$$("[data-tab]").forEach(b=>b.classList.toggle("active",b.dataset.tab===activeTab));setTab(activeTab)}
 function setTab(t){activeTab=t;["config","mods","console"].forEach(x=>$("#tab"+x[0].toUpperCase()+x.slice(1)).classList.toggle("hidden",x!==t));$$("[data-tab]").forEach(b=>b.classList.toggle("active",b.dataset.tab===t))}
 $$("[data-tab]").forEach(b=>b.onclick=()=>setTab(b.dataset.tab));
 $("#editServer").onclick=()=>openServerModal(selected);$("#deleteServer").onclick=()=>{const s=servers.find(x=>x.id===selected);if(!s||!confirm('Excluir "'+s.name+'" e os registros de mods associados?'))return;servers=servers.filter(x=>x.id!==selected);note("Servidor "+s.name+" removido.");save();render();showPage("servers")};
 function analyzeCompatibility(server){
- const items=server.mods||[],javaServer=server.game==="Minecraft";
+ const items=server.mods||[],javaServer=server.game==="MinecraftJava";
  if(!javaServer)return {checks:[],summary:"A análise automática está disponível para Minecraft Java."};
  const pluginServer=["Paper","Purpur","Spigot"].includes(server.loader);
  const checks=items.map(m=>{
@@ -62,7 +62,7 @@ const curseLoaderByServer={"Forge":"1","Fabric":"4","Quilt":"5","NeoForge":"6"};
 function curseServerOptions(){
  const sel=$("#curseServer"); if(!sel)return;
  const current=sel.value;
- const minecraft=servers.filter(s=>s.game==="Minecraft");
+ const minecraft=servers.filter(s=>s.game==="MinecraftJava");
  sel.innerHTML=minecraft.length?minecraft.map(s=>'<option value="'+esc(s.id)+'">'+esc(s.name)+'</option>').join(""):'<option value="">Nenhum servidor Minecraft cadastrado</option>';
  if(minecraft.some(s=>s.id===current))sel.value=current;
  const s=minecraft.find(x=>x.id===sel.value)||minecraft[0];
@@ -147,8 +147,8 @@ async function loadMinecraftVersions(){
   if(!mcCatalog.versions.length)throw new Error("A API não retornou versões.");
   const opts='<option value="">Selecione a versão</option>'+mcCatalog.versions.map(v=>'<option value="'+esc(v)+'">'+esc(v)+'</option>').join("");
   selects.forEach(s=>s.innerHTML=opts);
-  if($("#sVersion"))$("#sVersion").value=servers.find(s=>s.game==="Minecraft"&&s.version)?.version||"";
-  if($("#curseVersion"))$("#curseVersion").value=servers.find(s=>s.game==="Minecraft"&&s.version)?.version||"";
+  if($("#sVersion"))$("#sVersion").value=servers.find(s=>s.game==="MinecraftJava"&&s.version)?.version||"";
+  if($("#curseVersion"))$("#curseVersion").value=servers.find(s=>s.game==="MinecraftJava"&&s.version)?.version||"";
   await Promise.all([updateServerLoaderOptions($("#sVersion")?.value),updateCurseLoaderOptions($("#curseVersion")?.value)]);
  }catch(err){
   selects.forEach(s=>s.innerHTML='<option value="">Não foi possível carregar versões</option>');
@@ -226,7 +226,7 @@ const originalCurseServerOptions=curseServerOptions;
 curseServerOptions=function(){
  const sel=$("#curseServer");if(!sel)return;
  const current=sel.value;
- const minecraft=servers.filter(s=>s.game==="Minecraft");
+ const minecraft=servers.filter(s=>s.game==="MinecraftJava");
  sel.innerHTML=minecraft.length?minecraft.map(s=>'<option value="'+esc(s.id)+'">'+esc(s.name)+'</option>').join(""):'<option value="">Nenhum servidor Minecraft cadastrado</option>';
  if(minecraft.some(s=>s.id===current))sel.value=current;
  const s=minecraft.find(x=>x.id===sel.value)||minecraft[0];
@@ -236,3 +236,196 @@ curseServerOptions=function(){
  }
 };
 loadMinecraftVersions();
+
+
+/* Conexão segura com a API Cloudflare do JDev Host. */
+const API_DEFAULT = "https://jdev-host-api.joaoferreiraneto0711.workers.dev";
+const API_TOKEN_KEY = "jdevhost.api.panelToken";
+const API_BASE_KEY = "jdevhost.api.base";
+let apiConnected = false;
+let agentConnected = false;
+let apiSyncing = false;
+let syncTimer = null;
+
+function apiBase(){return ($("#apiBase")?.value || localStorage.getItem(API_BASE_KEY) || API_DEFAULT).trim().replace(/\\/+$/,"")}
+function apiToken(){return localStorage.getItem(API_TOKEN_KEY)||""}
+function apiMessage(message,error=false){
+ const el=$("#apiMessage");if(!el)return;
+ el.textContent=message;el.classList.toggle("error",!!error);
+}
+async function apiFetch(path,options={}){
+ const token=options.token || apiToken();
+ const headers={"Content-Type":"application/json",...(options.headers||{})};
+ if(token)headers.Authorization="Bearer "+token;
+ const response=await fetch(apiBase()+path,{...options,headers});
+ const data=await response.json().catch(()=>({error:"Resposta inválida da API."}));
+ if(!response.ok)throw new Error(data.error||("Erro HTTP "+response.status));
+ return data;
+}
+function apiPayload(s){
+ return {id:s.id,name:s.name,game:s.game,version:s.version||"",loader:s.loader||"",loaderVersion:s.loaderVersion||"",ram:s.ram||1,port:s.port||25565,description:s.description||"",settings:{mods:(s.mods||[]).map(m=>({id:m.id,name:m.name,version:m.version,type:m.type,loader:m.loader,fileName:m.fileName,fileSize:m.fileSize,curseforgeId:m.curseforgeId,curseforgeFileId:m.curseforgeFileId,source:m.source,url:m.url}))}};
+}
+async function syncLocalServers(){
+ if(!apiToken()||apiSyncing)return;
+ apiSyncing=true;
+ try{
+  const remote=await apiFetch("/api/servers");
+  const remoteIds=new Set(remote.map(s=>s.id));
+  for(const s of servers){
+   if(!["ETS2","BeamNG","MinecraftJava","MinecraftBedrock"].includes(s.game))continue;
+   const payload=apiPayload(s);
+   if(remoteIds.has(s.id))await apiFetch("/api/servers/"+s.id,{method:"PUT",body:JSON.stringify(payload)});
+   else await apiFetch("/api/servers",{method:"POST",body:JSON.stringify(payload)});
+  }
+ }catch(error){console.warn("Sincronização JDev Host:",error);apiMessage("Falha ao sincronizar: "+error.message,true)}
+ finally{apiSyncing=false}
+}
+async function syncRemoteServers(){
+ const remote=await apiFetch("/api/servers");
+ const localById=new Map(servers.map(s=>[s.id,s]));
+ for(const r of remote){
+  const cfg=r.config||JSON.parse(r.config_json||"{}");
+  const previous=localById.get(r.id)||{};
+  const mods=cfg.settings?.mods||previous.mods||[];
+  const item={...previous,id:r.id,name:r.name,game:cfg.game,version:cfg.version||"",loader:cfg.loader||"",loaderVersion:cfg.loaderVersion||"",ram:cfg.ram||1,port:cfg.port||25565,description:cfg.description||"",mods,status:r.status};
+  const idx=servers.findIndex(s=>s.id===r.id);
+  if(idx>=0)servers[idx]=item;else servers.push(item);
+ }
+ save();
+ render();
+}
+async function refreshApiStatus(){
+ if(!apiToken())return;
+ try{
+  const data=await apiFetch("/api/status");
+  apiConnected=true;agentConnected=!!data.agent?.connected;
+  const statusText=agentConnected?"Agente conectado":"API conectada · agente offline";
+  $("#agentStatus").textContent=statusText;
+  $("#agentSide").textContent=agentConnected?"Agente Linux: conectado":"Agente Linux: desconectado";
+  $("#apiMessage").textContent="API conectada. "+(agentConnected?"Agente Linux online.":"Aguardando o agente Linux no notebook.");
+  $("#pairAgent").disabled=false;
+  const stat=$("#agentStatus");if(stat)stat.title=data.agent?.lastSeen||"";
+  const hint=$("#runtimeHint");if(hint)hint.textContent=agentConnected?"Agente online. Você pode iniciar ou parar este servidor.":"Conexão com a API OK; ações de execução aguardam o agente Linux.";
+  const start=$("#startServerBtn"),stop=$("#stopServerBtn");
+  if(start)start.disabled=!agentConnected;
+  if(stop)stop.disabled=!agentConnected;
+  const running=data.runtime?.active_server_id;
+  const runningServer=servers.find(s=>s.id===running);
+  const runningLabel=runningServer?.name||"Nenhum";
+  const statRun=document.querySelector("#homePage .stat:nth-child(2) strong");
+  if(statRun)statRun.textContent=running?"1":"0";
+  const statHost=document.querySelector("#homePage .stat:nth-child(4) strong");
+  if(statHost)statHost.textContent=agentConnected?"Online":"Offline";
+  const hostLabel=document.querySelector("#homePage .stat:nth-child(4) span");
+  if(hostLabel)hostLabel.textContent=agentConnected?"Notebook conectado":"Agente host";
+  return data;
+ }catch(error){
+  apiConnected=false;agentConnected=false;
+  $("#agentStatus").textContent="API desconectada";
+  $("#agentSide").textContent="Agente Linux: desconectado";
+  if($("#pairAgent"))$("#pairAgent").disabled=true;
+  return null;
+ }
+}
+async function connectApi(){
+ const input=$("#apiCredential").value.trim();
+ localStorage.setItem(API_BASE_KEY,apiBase());
+ if(!input){apiMessage("Cole o código inicial ou o token do painel.",true);return}
+ apiMessage("Conectando à API...");
+ try{
+  let token=input;
+  try{await apiFetch("/api/status",{token})}
+  catch(authError){
+   const claim=await fetch(apiBase()+"/api/claim",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({setupCode:input})});
+   const data=await claim.json().catch(()=>({}));
+   if(!claim.ok)throw new Error(data.error||authError.message);
+   token=data.panelToken;
+  }
+  localStorage.setItem(API_TOKEN_KEY,token);
+  $("#apiCredential").value="";
+  await syncRemoteServers();
+  await syncLocalServers();
+  await refreshApiStatus();
+  apiMessage("Painel conectado e configurações sincronizadas.");
+ }catch(error){apiMessage("Não foi possível conectar: "+error.message,true)}
+}
+$("#connectApi")?.addEventListener("click",connectApi);
+$("#disconnectApi")?.addEventListener("click",()=>{
+ localStorage.removeItem(API_TOKEN_KEY);apiConnected=false;agentConnected=false;
+ $("#agentStatus").textContent="Agente desconectado";$("#agentSide").textContent="Agente Linux: desconectado";
+ $("#pairAgent").disabled=true;apiMessage("Token removido deste navegador.");
+});
+$("#apiBase")?.addEventListener("change",()=>localStorage.setItem(API_BASE_KEY,apiBase()));
+$("#pairAgent")?.addEventListener("click",async()=>{
+ try{
+  const result=await apiFetch("/api/agent/pair",{method:"POST",body:JSON.stringify({name:"JDev Host Linux"})});
+  $("#agentTokenOutput").textContent="ID do dispositivo: "+result.deviceId+"\\nToken do agente (guarde com segurança):\\n"+result.deviceToken;
+  $("#agentTokenOutput").classList.remove("hidden");
+ }catch(error){apiMessage("Não foi possível gerar a credencial: "+error.message,true)}
+});
+document.addEventListener("click",async event=>{
+ if(event.target?.id==="startServerBtn"||event.target?.id==="stopServerBtn"){
+  const start=event.target.id==="startServerBtn";
+  if(!apiToken()){apiMessage("Conecte o painel à API nas Configurações.",true);showPage("settings");return}
+  if(!agentConnected){apiMessage("A API está conectada, mas o agente do notebook ainda está offline.",true);return}
+  try{
+   const result=await apiFetch("/api/servers/"+selected+"/"+(start?"start":"stop"),{method:"POST",body:"{}"});
+   const hint=$("#runtimeHint");if(hint)hint.textContent=start?"Inicialização enviada ao notebook.":"Parada enviada ao notebook.";
+   await refreshApiStatus();
+  }catch(error){const hint=$("#runtimeHint");if(hint)hint.textContent=error.message}
+ }
+});
+$("#serverForm")?.addEventListener("submit",()=>{if(apiToken())setTimeout(syncLocalServers,250)});
+$("#modForm")?.addEventListener("submit",()=>{if(apiToken())setTimeout(syncLocalServers,900)});
+$("#deleteServer")?.addEventListener("click",()=>{
+ const deletedId=selected;
+ if(apiToken())setTimeout(()=>apiFetch("/api/servers/"+deletedId,{method:"DELETE"}).catch(error=>apiMessage("Falha ao excluir no servidor remoto: "+error.message,true)),250);
+});
+const originalSave=save;
+save=function(){
+ originalSave();
+ if(apiToken()){
+  clearTimeout(syncTimer);
+  syncTimer=setTimeout(syncLocalServers,1000);
+ }
+};
+function updateGameForm(){
+ const game=$("#sGame")?.value;
+ const version=$("#sVersion"),loader=$("#sLoader"),loaderVersion=$("#sLoaderVersion");
+ if(!version||!loader)return;
+ if(game==="MinecraftJava"){
+  if(mcCatalog.versions.length){
+   const selected=version.value;
+   version.innerHTML='<option value="">Selecione a versão</option>'+mcCatalog.versions.map(v=>'<option value="'+esc(v)+'">'+esc(v)+'</option>').join("");
+   if(selected&&mcCatalog.versions.includes(selected))version.value=selected;
+  }
+  updateServerLoaderOptions(version.value);
+  return;
+ }
+ const options={
+  MinecraftBedrock:{version:[["","Selecione a versão"],["latest","Mais recente"]],loader:[["Bedrock","Bedrock Dedicated Server"]],port:19132,ram:2},
+  BeamNG:{version:[["latest","Mais recente"]],loader:[["BeamMP","BeamMP Dedicated Server"]],port:30814,ram:2},
+  ETS2:{version:[["latest","Mais recente"]],loader:[["Convoy","Servidor dedicado Convoy"]],port:27015,ram:2}
+ }[game]||{version:[["latest","Mais recente"]],loader:[["default","Padrão"]],port:25565,ram:1};
+ version.innerHTML=options.version.map(([v,l])=>'<option value="'+v+'">'+l+'</option>').join("");
+ loader.innerHTML=options.loader.map(([v,l])=>'<option value="'+v+'">'+l+'</option>').join("");
+ if(loaderVersion){loaderVersion.innerHTML='<option value="">Não se aplica</option>';loaderVersion.disabled=true}
+ $("#sPort").value=options.port;$("#sRam").value=options.ram;
+}
+$("#sGame")?.addEventListener("change",updateGameForm);
+const previousOpenServerModal=openServerModal;
+openServerModal=function(serverId){
+ previousOpenServerModal(serverId);
+ const s=serverId?servers.find(x=>x.id===serverId):null;
+ updateGameForm();
+ if(s){
+  $("#sVersion").value=s.version||$("#sVersion").value;
+  $("#sLoader").value=s.loader||$("#sLoader").value;
+  if($("#sLoaderVersion"))$("#sLoaderVersion").value=s.loaderVersion||"";
+ }
+};
+if($("#apiBase"))$("#apiBase").value=localStorage.getItem(API_BASE_KEY)||API_DEFAULT;
+if(apiToken()){
+ $("#apiCredential").placeholder="Token salvo neste navegador";
+ syncRemoteServers().then(()=>refreshApiStatus());
+}
