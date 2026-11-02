@@ -1,0 +1,8 @@
+name = "jdev-host-api"
+main = "src/index.js"
+compatibility_date = "2026-11-02"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "jdev-host-db"
+database_id = "505874e1-f50e-49fa-83b2-6c16a3129409"
