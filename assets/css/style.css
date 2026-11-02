@@ -16,3 +16,6 @@
 .curse-pagination{display:flex;justify-content:center;align-items:center;gap:12px;margin-top:14px}.curse-error{color:#b33c3c!important}
 @media(max-width:900px){.cursefilters{grid-template-columns:1fr 1fr}.cursequery{grid-column:span 2}.cursebutton{width:100%}}
 @media(max-width:540px){.curse-results{grid-template-columns:1fr}.cursefilters{grid-template-columns:1fr}.cursequery{grid-column:auto}.cursehead{flex-direction:column}}
+
+/* Selects do catálogo dinâmico do Minecraft */
+.cursefilters select,.field select{min-height:35px}
