@@ -1,66 +1,84 @@
 # JDev Host
 
-Painel web pessoal para organizar servidores de jogos hospedados em um computador próprio.
+Painel pessoal para organizar e controlar servidores de jogos em um notebook Linux.
 
-## Estado atual
+## Jogos previstos
 
-A primeira versão é um protótipo funcional de interface, feito em HTML, CSS e JavaScript puro. Não exige Node.js, banco de dados ou dependências.
+- Minecraft Java
+- Minecraft Bedrock
+- BeamNG.drive com BeamMP
+- Euro Truck Simulator 2 com servidor dedicado Convoy
 
-- Dashboard responsivo.
-- Cadastro local de servidores (os dados ficam apenas na sessão atual do navegador).
-- Estados de iniciar/parar simulados.
-- Console demonstrativo, sem execução de comandos.
-- Estrutura visual preparada para receber telemetria do agente Linux.
+O painel permite cadastrar várias instâncias, mas a regra do host é manter **somente um servidor de jogo em execução por vez**.
 
-> Importante: nesta etapa, o painel não inicia processos reais, não cria servidores e não executa comandos no host. Os estados e mensagens são demonstrações no navegador.
-
-## Executar localmente
-
-Abra o arquivo `index.html` no navegador. Para publicar, habilite GitHub Pages nas configurações do repositório e selecione a branch `main`, pasta `/(root)`.
-
-## Arquitetura planejada
+## Arquitetura
 
 ```
-Navegador
-   │ HTTPS
-   ▼
-Painel web (GitHub Pages)
-   │ API autenticada / WebSocket seguro
-   ▼
-Backend de controle
-   ▲
-   │ conexão de saída autenticada (WSS/HTTPS)
-   ▼
-Agente Linux no computador host
-   │
-   └── runtime isolado dos servidores (ex.: containers)
+GitHub Pages (painel)
+       │ HTTPS + token
+       ▼
+Cloudflare Worker (API) ─── D1 (configurações, tarefas e logs)
+       ▲
+       │ HTTPS de saída, autenticado
+       ▼
+Agente Linux no notebook
+       │
+       └── processos dos servidores via terminal
 ```
 
-O agente deve iniciar uma conexão de saída com o backend. Assim, o painel não precisa abrir uma porta administrativa de entrada no roteador do host. A conectividade pública dos jogadores aos servidores é uma configuração separada.
+- Frontend estático no GitHub Pages.
+- API separada no Cloudflare Worker `jdev-host-api`.
+- Banco D1 `jdev-host-db`.
+- Worker de API CurseForge permanece separado e inalterado.
+- O agente do notebook fará polling de tarefas por conexão de saída; não será necessário abrir uma porta administrativa no roteador.
+- A conectividade pública dos jogadores é separada da conexão painel-agente.
 
-## Próximas etapas
+## API Cloudflare
 
-1. Definir e implementar a API autenticada do backend.
-2. Criar o agente Linux com registro seguro e reconexão.
-3. Integrar status, uso de CPU/RAM/disco e logs reais.
-4. Implementar criação e gerenciamento de instâncias isoladas, com limites de recursos.
-5. Configurar acesso dos jogadores por solução adequada ao protocolo do jogo.
+Base URL: `https://jdev-host-api.joaoferreiraneto0711.workers.dev`
+
+Rotas atuais:
+- `GET /health` — saúde da API.
+- `POST /api/claim` — troca do código inicial de uso único por token do painel.
+- `GET /api/status` — estado do agente, fila e servidores.
+- `GET|POST /api/servers` — listar e cadastrar servidores.
+- `PUT|DELETE /api/servers/:id` — atualizar e excluir servidores.
+- `POST /api/servers/:id/start` — solicitar inicialização.
+- `POST /api/servers/:id/stop` — solicitar parada.
+- `GET /api/servers/:id/logs` — consultar logs.
+- `POST /api/agent/pair` — gerar credencial individual do agente.
+- `POST /api/agent/poll` — buscar a próxima tarefa.
+- `POST /api/agent/report` — reportar status, conclusão e logs.
+
+Todas as rotas administrativas exigem token Bearer. O código inicial é de uso único; o token do painel é guardado no armazenamento local do navegador. O agente usa uma credencial diferente, armazenada como hash no D1.
+
+## Estado da implementação
+
+### Já criado
+- Interface para os quatro jogos.
+- Configuração de conexão do painel com a API.
+- API Cloudflare e banco D1.
+- Autenticação inicial de uso único e tokens separados para painel/agente.
+- Cadastro, atualização, exclusão, fila de tarefas, status e logs na API.
+- Regra de troca: ao solicitar outro servidor, a API enfileira a parada do servidor ativo antes da inicialização do próximo.
+
+### Ainda falta
+1. Concluir a sincronização visual e testar no navegador.
+2. Criar o agente Linux que consulta a fila, executa templates permitidos e envia telemetria.
+3. Implementar instaladores e comandos específicos para ETS2 Convoy, BeamMP, Minecraft Java e Bedrock.
+4. Transferir arquivos de mods/mundos para o notebook ou baixar arquivos diretamente de fontes autorizadas.
+5. Testar conectividade dos jogadores e limites reais de CPU/RAM do notebook.
+
+> **Importante:** a API já recebe e guarda configurações e tarefas, mas ainda não existe agente instalado no notebook. Portanto, iniciar/parar no painel ainda não executa os jogos até essa próxima etapa.
 
 ## Segurança
 
-O agente não deve expor o socket do Docker, aceitar shell arbitrário nem executar comandos livres enviados pelo navegador. A implementação real deverá usar autenticação, TLS, permissões mínimas, templates permitidos e limites de recursos.
+- O agente deve iniciar a conexão de saída; não expor SSH, terminal ou Docker socket à internet.
+- Não aceitar shell arbitrário enviado pelo navegador.
+- Executar somente operações permitidas por jogo, com caminhos controlados e limites de recursos.
+- Tokens do painel e do agente são distintos.
+- Credenciais nunca devem ser gravadas no repositório.
 
-## Estrutura
+## Desenvolvimento
 
-```text
-.
-├── index.html
-├── assets/
-│   ├── css/
-│   │   └── style.css
-│   └── js/
-│       └── app.js
-└── README.md
-```
-
-O HTML contém a estrutura da interface, o CSS concentra a apresentação visual e o JavaScript controla navegação, cadastros e biblioteca local de mods/plugins.
+O frontend usa HTML, CSS e JavaScript puro. A API está em `cloudflare/api-worker/` e usa D1. A migração inicial do banco está em `cloudflare/api-worker/migrations/`.
