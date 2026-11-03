@@ -83,3 +83,50 @@
 .manager-section .panelhead{margin-bottom:10px}
 .manager-actions{display:flex;gap:8px;flex-wrap:wrap}
 @media(max-width:700px){.resource-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.manager-status{align-items:flex-start;flex-direction:column}}
+
+
+/* Correção do layout do menu: barra fixa no desktop e gaveta somente no mobile. */
+@media (min-width: 901px) {
+  .app { grid-template-columns: 245px minmax(0, 1fr); }
+  .side {
+    position: sticky;
+    inset: auto;
+    top: 0;
+    width: auto;
+    height: 100vh;
+    transform: none;
+    overflow-y: auto;
+    box-shadow: none;
+    z-index: 1;
+  }
+  .side-backdrop { display: none !important; }
+  .mobile-menu-btn { display: none !important; }
+}
+@media (max-width: 900px) {
+  .app { grid-template-columns: minmax(0, 1fr); }
+  .side {
+    display: flex;
+    position: fixed;
+    z-index: 20;
+    inset: 0 auto 0 0;
+    width: min(290px, 84vw);
+    height: 100dvh;
+    overflow-y: auto;
+    transform: translateX(-105%);
+    transition: transform .22s ease;
+    box-shadow: 12px 0 35px #1422381c;
+  }
+  .side.open { transform: translateX(0); }
+  .side-backdrop {
+    display: block;
+    position: fixed;
+    inset: 0;
+    background: #10182780;
+    z-index: 19;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity .22s ease, visibility .22s ease;
+  }
+  .side-backdrop.show { opacity: 1; visibility: visible; }
+  .mobile-menu-btn { display: inline-flex; }
+}
