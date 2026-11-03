@@ -9,9 +9,9 @@ function gameCode(s){return s.game==="MinecraftJava"?"JAVA":s.game==="MinecraftB
 function totalMods(){return servers.reduce((n,s)=>n+(s.mods||[]).length,0)}
 function card(s){return '<article class="server"><div class="servermain"><div class="gameicon">'+gameCode(s)+'</div><div><h3>'+esc(s.name)+'</h3><p>'+esc(gameLabel(s))+' · '+esc(s.version||"Versão não definida")+' · '+esc(s.loader)+(s.loaderVersion?' '+esc(s.loaderVersion):'')+'</p></div></div><div class="serveractions"><span class="pill">'+(s.mods||[]).length+' mods/plugins</span><button class="btn light" data-open="'+s.id+'">Gerenciar</button></div></article>'}
 function empty(){return '<div class="empty"><div class="emptyicon">＋</div><h3>Nenhum servidor cadastrado</h3><p>Seu painel está vazio. Crie seu primeiro servidor para configurar versão, loader, memória, porta, mods e plugins.</p><button class="btn" data-create>＋ Criar primeiro servidor</button></div>'}
-function render(){const html=servers.length?servers.map(card).join(""):empty();$("#homeServers").innerHTML=html;$("#allServers").innerHTML=html;$("#statTotal").textContent=servers.length;$("#statMods").textContent=totalMods();renderActivity();$$("[data-open]").forEach(b=>b.onclick=()=>openDetail(b.dataset.open));$$("[data-create]").forEach(b=>b.onclick=()=>openServerModal());renderGlobalMods()}
+function render(){const html=servers.length?servers.map(card).join(""):empty();$("#homeServers").innerHTML=html;$("#allServers").innerHTML=html;$("#statTotal").textContent=servers.length;$("#statMods").textContent=totalMods();renderActivity();$("[data-open]").forEach(b=>b.onclick=()=>openDetail(b.dataset.open));$("[data-create]").forEach(b=>b.onclick=()=>openServerModal());renderGlobalMods();if(typeof curseServerOptions==="function")curseServerOptions()}
 function closeMobileNav(){const side=$("#sideNav"),backdrop=$("#sideBackdrop"),toggle=$("#mobileMenu");side?.classList.remove("open");backdrop?.classList.remove("show");document.body.classList.remove("nav-open");toggle?.setAttribute("aria-expanded","false")}
-function showPage(p){closeMobileNav();const pages={home:"homePage",servers:"serversPage",detail:"detailPage",mods:"modsPage",infra:"infraPage",pterodactyl:"pterodactylPage",settings:"settingsPage"};Object.values(pages).forEach(id=>$("#"+id).classList.add("hidden"));if(p==="console"){ $("#homePage").classList.remove("hidden");$("#consoleLog").scrollIntoView({behavior:"smooth",block:"center"}) }else $("#"+pages[p]).classList.remove("hidden");$("#pageTitle").textContent=({home:"Visão geral",servers:"Servidores",detail:"Gerenciar servidor",mods:"Mods e plugins",infra:"Infraestrutura",pterodactyl:"Pterodactyl",settings:"Configurações"})[p];$$("[data-page]").forEach(b=>b.classList.toggle("active",b.dataset.page===p))}
+function showPage(p){closeMobileNav();if(p==="mods"&&typeof curseServerOptions==="function")curseServerOptions();const pages={home:"homePage",servers:"serversPage",detail:"detailPage",mods:"modsPage",infra:"infraPage",pterodactyl:"pterodactylPage",settings:"settingsPage"};Object.values(pages).forEach(id=>$("#"+id).classList.add("hidden"));if(p==="console"){ $("#homePage").classList.remove("hidden");$("#consoleLog").scrollIntoView({behavior:"smooth",block:"center"}) }else $("#"+pages[p]).classList.remove("hidden");$("#pageTitle").textContent=({home:"Visão geral",servers:"Servidores",detail:"Gerenciar servidor",mods:"Mods e plugins",infra:"Infraestrutura",pterodactyl:"Pterodactyl",settings:"Configurações"})[p];$$("[data-page]").forEach(b=>b.classList.toggle("active",b.dataset.page===p))}
 $$("[data-page]").forEach(b=>b.onclick=()=>showPage(b.dataset.page));$("#seeServers").onclick=()=>showPage("servers");$("#newServer").onclick=()=>openServerModal();$("#newServer2").onclick=()=>openServerModal();
 function openServerModal(id){editing=id||null;const s=id?servers.find(x=>x.id===id):null;$("#serverModalTitle").textContent=s?"Editar servidor":"Criar servidor";$("#sName").value=s?.name||"";$("#sGame").value=s?.game||"MinecraftJava";$("#sVersion").value=s?.version||"";$("#sLoader").value=s?.loader||"Vanilla";if($("#sLoaderVersion"))$("#sLoaderVersion").value=s?.loaderVersion||"";$("#sRam").value=s?.ram||2;$("#sPort").value=s?.port||25565;$("#sDescription").value=s?.description||"";$("#serverModal").classList.add("show")}
 function closeModal(id){$("#"+id).classList.remove("show")}
@@ -61,10 +61,11 @@ render();showPage("home");
 const CURSE_API="https://jdev-host-curseforge.joaoferreiraneto0711.workers.dev";
 let curseIndex=0,curseTotal=0,curseLastQuery="";
 const curseLoaderByServer={"Forge":"1","Fabric":"4","Quilt":"5","NeoForge":"6"};
+function isMinecraftJavaServer(server){const game=String(server?.game||"").trim().toLowerCase().replace(/[ _-]/g,"");const loader=String(server?.loader||"").trim().toLowerCase();return ["minecraftjava","minecraft","java","minecraftjav a"].includes(game)||(["forge","fabric","neoforge","quilt","paper","purpur","spigot","vanilla"].includes(loader)&&(!game||game.includes("minecraft")));}
 function curseServerOptions(){
  const sel=$("#curseServer"); if(!sel)return;
  const current=sel.value;
- const minecraft=servers.filter(s=>s.game==="MinecraftJava");
+ const minecraft=servers.filter(isMinecraftJavaServer);
  sel.innerHTML=minecraft.length?minecraft.map(s=>'<option value="'+esc(s.id)+'">'+esc(s.name)+'</option>').join(""):'<option value="">Nenhum servidor Minecraft cadastrado</option>';
  if(minecraft.some(s=>s.id===current))sel.value=current;
  const s=minecraft.find(x=>x.id===sel.value)||minecraft[0];
@@ -228,7 +229,7 @@ const originalCurseServerOptions=curseServerOptions;
 curseServerOptions=function(){
  const sel=$("#curseServer");if(!sel)return;
  const current=sel.value;
- const minecraft=servers.filter(s=>s.game==="MinecraftJava");
+ const minecraft=servers.filter(isMinecraftJavaServer);
  sel.innerHTML=minecraft.length?minecraft.map(s=>'<option value="'+esc(s.id)+'">'+esc(s.name)+'</option>').join(""):'<option value="">Nenhum servidor Minecraft cadastrado</option>';
  if(minecraft.some(s=>s.id===current))sel.value=current;
  const s=minecraft.find(x=>x.id===sel.value)||minecraft[0];
