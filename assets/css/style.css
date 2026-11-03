@@ -68,3 +68,18 @@
  .topright .btn{padding:9px 10px}
  .top h1{font-size:21px}
 }
+
+/* Gerenciamento individual de servidor */
+.manager-status{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px;border:1px solid #e7ebf1;border-radius:10px;background:#fbfcfe;margin-bottom:12px}
+.manager-status small,.resource-card small{display:block;color:#8792a4;font-size:9px;font-weight:750;letter-spacing:.06em}
+.manager-status strong{display:block;font-size:16px;text-transform:capitalize;margin-top:5px}
+.resource-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-bottom:18px}
+.resource-card{padding:13px;border:1px solid #e7ebf1;border-radius:10px;background:#fff;min-width:0}
+.resource-card strong{display:block;font-size:22px;margin:8px 0 3px}
+.resource-card span{display:block;font-size:9px;color:#929cad;min-height:14px}
+.resource-track{height:5px;background:#eff2f6;border-radius:10px;margin-top:12px;overflow:hidden}
+.resource-track i{display:block;width:0;height:100%;background:#8d9bb0}
+.manager-section{padding:14px;border:1px solid #e7ebf1;border-radius:10px;margin:12px 0}
+.manager-section .panelhead{margin-bottom:10px}
+.manager-actions{display:flex;gap:8px;flex-wrap:wrap}
+@media(max-width:700px){.resource-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.manager-status{align-items:flex-start;flex-direction:column}}
