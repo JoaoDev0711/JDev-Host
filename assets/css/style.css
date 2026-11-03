@@ -130,3 +130,46 @@
   .side-backdrop.show { opacity: 1; visibility: visible; }
   .mobile-menu-btn { display: inline-flex; }
 }
+
+
+/* Override final para garantir a gaveta de navegação em telas touch/mobile. */
+@media screen and (max-width: 900px) {
+  #mobileMenu { display: inline-flex !important; visibility: visible !important; }
+  #sideNav {
+    display: flex !important;
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    bottom: 0 !important;
+    right: auto !important;
+    width: min(290px, 84vw) !important;
+    height: 100vh !important;
+    height: 100dvh !important;
+    z-index: 1001 !important;
+    overflow-y: auto !important;
+    background: #fff !important;
+    transform: translateX(-105%) !important;
+    transition: transform .22s ease !important;
+    visibility: visible !important;
+  }
+  #sideNav.open { transform: translateX(0) !important; }
+  #sideBackdrop {
+    display: block !important;
+    position: fixed !important;
+    inset: 0 !important;
+    z-index: 1000 !important;
+    background: #10182780 !important;
+    opacity: 0 !important;
+    visibility: hidden !important;
+    pointer-events: none !important;
+  }
+  #sideBackdrop.show {
+    opacity: 1 !important;
+    visibility: visible !important;
+    pointer-events: auto !important;
+  }
+}
+@media screen and (min-width: 901px) {
+  #mobileMenu, #sideBackdrop { display: none !important; }
+  #sideNav { transform: none !important; }
+}
