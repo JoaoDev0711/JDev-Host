@@ -258,11 +258,15 @@ function apiMessage(message,error=false){
 }
 async function apiFetch(path,options={}){
  const token=options.token || apiToken();
- const headers={"Content-Type":"application/json",...(options.headers||{})};
+ const method=String(options.method||"GET").toUpperCase();
+ const headers={Accept:"application/json",...(options.headers||{})};
+ if(options.body!==undefined&&!headers["Content-Type"])headers["Content-Type"]="application/json";
  if(token)headers.Authorization="Bearer "+token;
- const response=await fetch(apiBase()+path,{...options,headers});
+ let response;
+ try{response=await fetch(apiBase()+path,{...options,method,headers})}
+ catch(error){throw new Error("Falha de rede ao acessar a API ("+apiBase()+"): "+error.message)}
  const data=await response.json().catch(()=>({error:"Resposta inválida da API."}));
- if(!response.ok)throw new Error(data.error||("Erro HTTP "+response.status));
+ if(!response.ok){const error=new Error(data.error||("Erro HTTP "+response.status));error.status=response.status;throw error}
  return data;
 }
 function apiPayload(s){
@@ -335,22 +339,31 @@ async function connectApi(){
  const input=$("#apiCredential").value.trim();
  localStorage.setItem(API_BASE_KEY,apiBase());
  if(!input){apiMessage("Cole o código inicial ou o token do painel.",true);return}
- apiMessage("Conectando à API...");
+ apiMessage("Verificando a API...");
  try{
+  const health=await fetch(apiBase()+"/health",{headers:{Accept:"application/json"}});
+  if(!health.ok)throw new Error("A API respondeu HTTP "+health.status+" em /health.");
+  const healthData=await health.json().catch(()=>null);
+  if(!healthData?.ok)throw new Error("O endereço respondeu, mas não confirmou ser a API JDev Host.");
+  apiMessage("API online. Validando credencial...");
   let token=input;
-  try{await apiFetch("/api/status",{token})}
-  catch(authError){
-   const claim=await fetch(apiBase()+"/api/claim",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({setupCode:input})});
+  try{
+   await apiFetch("/api/status",{token});
+  }catch(authError){
+   if(authError.status!==401)throw authError;
+   const claim=await fetch(apiBase()+"/api/claim",{method:"POST",headers:{"Content-Type":"application/json",Accept:"application/json"},body:JSON.stringify({setupCode:input})});
    const data=await claim.json().catch(()=>({}));
-   if(!claim.ok)throw new Error(data.error||authError.message);
+   if(!claim.ok)throw new Error(data.error||("Falha ao validar o código inicial (HTTP "+claim.status+")."));
+   if(!data.panelToken)throw new Error("A API não retornou o token do painel.");
    token=data.panelToken;
   }
   localStorage.setItem(API_TOKEN_KEY,token);
   $("#apiCredential").value="";
   await syncRemoteServers();
   await syncLocalServers();
-  await refreshApiStatus();
-  apiMessage("Painel conectado e configurações sincronizadas.");
+  const status=await refreshApiStatus();
+  if(!status)throw new Error("Credencial salva, mas não foi possível carregar o status da API.");
+  apiMessage("API conectada. Configurações sincronizadas.");
  }catch(error){apiMessage("Não foi possível conectar: "+error.message,true)}
 }
 $("#connectApi")?.addEventListener("click",connectApi);
@@ -435,7 +448,10 @@ openServerModal=function(serverId){
 if($("#apiBase"))$("#apiBase").value=localStorage.getItem(API_BASE_KEY)||API_DEFAULT;
 if(apiToken()){
  $("#apiCredential").placeholder="Token salvo neste navegador";
- syncRemoteServers().then(()=>refreshApiStatus());
+ syncRemoteServers()
+  .then(()=>refreshApiStatus())
+  .then(status=>{if(!status)apiMessage("Token salvo, mas a API não respondeu ou recusou a credencial. Verifique o endereço e conecte novamente.",true)})
+  .catch(error=>{apiMessage("Falha ao carregar dados da API: "+error.message,true);console.error("JDev Host API:",error)});
 }
 
 
