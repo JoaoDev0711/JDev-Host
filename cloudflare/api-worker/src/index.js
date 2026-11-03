@@ -1,5 +1,6 @@
 const corsHeaders = {
-  "Access-Control-Allow-Origin": "https://joaodev0711.github.io",
+  // API usa Bearer token, não cookies. Permitir origens do painel em GitHub Pages e Cloudflare Pages.
+  "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Methods": "GET,POST,PUT,DELETE,OPTIONS",
   "Access-Control-Allow-Headers": "Authorization,Content-Type",
   "Access-Control-Max-Age": "86400",
